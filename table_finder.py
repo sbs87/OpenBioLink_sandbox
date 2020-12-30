@@ -60,7 +60,9 @@ def print_table(queries_file,sql_path,table_map):
             table=row[0]
             start=table_map[table]['start']
             stop=table_map[table]['end']
-            cmd="awk 'NR>= {} && NR< {}' {} > {}.table.tsv".format(start,stop,sql_path,table)
+            #start=stop - table_map[table]['start']
+            #cmd="awk 'NR>= {} && NR< {}' {} > {}_table.head.tsv".format(start,stop,sql_path,table)
+            cmd="head -n {} {} | tail -n+{} > {}_table.head.tsv".format(stop,sql_path,start,table)
             print(cmd)
             os.system(cmd)
 
@@ -70,3 +72,22 @@ if mode=='find_table':
 if mode=='print_table':
     sql_path=sys.argv[4] #'FOO/o_files/sql_dump.sql'
     print_table(queries_file,sql_path,table_map)
+
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+
+
