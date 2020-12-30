@@ -3,7 +3,7 @@ import sys
 import csv
 import os
 
-mode=sys.argv[1] # print_table or #find_table
+mode=sys.argv[1] # print_table or #find_table or stats
 queries_file=sys.argv[2] # file with line #s (find_table) or table names (print_table)
 table_map_file=sys.argv[3] #line #s where SQL tables are found in sql dump
 
@@ -56,13 +56,12 @@ def print_table(queries_file,sql_path,table_map):
     with open(queries_file,'r') as file_h2:
         q_reader=csv.reader(file_h2,delimiter='\t')
         for row in q_reader:
-            success=False
             table=row[0]
             start=table_map[table]['start']
             stop=table_map[table]['end']
             #start=stop - table_map[table]['start']
             #cmd="awk 'NR>= {} && NR< {}' {} > {}_table.head.tsv".format(start,stop,sql_path,table)
-            cmd="head -n {} {} | tail -n+{} > {}_table.head.tsv".format(stop,sql_path,start,table)
+            cmd="head -n {} {} | tail -n+{} > {}_table.tsv".format(stop,sql_path,start,table)
             print(cmd)
             os.system(cmd)
 
@@ -72,22 +71,6 @@ if mode=='find_table':
 if mode=='print_table':
     sql_path=sys.argv[4] #'FOO/o_files/sql_dump.sql'
     print_table(queries_file,sql_path,table_map)
-
-
-1
-2
-3
-4
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-
-
+if mode=="stats":
+    for table in table_map:
+        print("{}\t{}\t{}".format(table,table_map[table]['start'],table_map[table]['end']))
