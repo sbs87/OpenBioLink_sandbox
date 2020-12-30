@@ -1,11 +1,15 @@
 
 import sys
 import csv
+import os
 
-table_map_file=sys.argv[2]
-queries_file=sys.argv[1]
+mode=sys.argv[1] # print_table or #find_table
+queries_file=sys.argv[2] # file with line #s (find_table) or table names (print_table)
+table_map_file=sys.argv[3] #line #s where SQL tables are found in sql dump
+
 table_map=dict()
 
+# Store start line for each SQL table
 with open(table_map_file,'r') as file_h:
     t_reader= csv.reader(file_h,delimiter='\t')
     prev_table='none'
@@ -19,33 +23,50 @@ with open(table_map_file,'r') as file_h:
         
 #print(table_map)
 
+# Find the table's end position based on previous table's start position
 table_map['none']={'start':0,'end':0,'i':'none'}
 for table_name in table_map:
     table_line=table_map[table_name]['start']
     prev_table=table_map[table_name]['i']
     table_map[prev_table]['end']=table_line
     
-    
-        
 #print(table_map)
 #table_map={'public.act_table_full':{'start':'2664','end':'19837'},'public.action_type':{'start':'19838','end':'19878'}}
 
-
-# In[65]:
-
-
 #query=170082 #sys.argv[2]
 
-with open(queries_file,'r') as file_h2:
-    q_reader=csv.reader(file_h2,delimiter='\t')
-    for row in q_reader:
-        success=False
-        query=int(row[0])
-        for table in table_map:
-            t_start=int(table_map[table]['start'])
-            t_end=int(table_map[table]['end'])
-            if query >=t_start and query <t_end:
-                print(table+"\t"+str(query))
-                success=True
-        if(not success):
-            print("could not find "+str(query))
+# find_table - finds which table a line number belongs 
+def find_table(queries_file,table_map):
+    with open(queries_file,'r') as file_h2:
+        q_reader=csv.reader(file_h2,delimiter='\t')
+        for row in q_reader:
+            success=False
+            query=int(row[0])
+            for table in table_map:
+                t_start=int(table_map[table]['start'])
+                t_end=int(table_map[table]['end'])
+                if query >=t_start and query <t_end:
+                    print(table+"\t"+str(query))
+                    success=True
+            if not success :
+                print("could not find "+str(query))
+
+# print table - prints the table contents to file based on table start/stop
+def print_table(queries_file,sql_path,table_map):
+    with open(queries_file,'r') as file_h2:
+        q_reader=csv.reader(file_h2,delimiter='\t')
+        for row in q_reader:
+            success=False
+            table=row[0]
+            start=table_map[table]['start']
+            stop=table_map[table]['end']
+            cmd="awk 'NR>= {} && NR< {}' {}".format(start,stop,sql_path)
+            print(cmd)
+            os.system(cmd)
+
+# switch for find_table or print_table
+if mode=='find_table':
+    find_table(queries_file,table_map)
+if mode=='print_table':
+    sql_path=sys.argv[4] #'FOO/o_files/sql_dump.sql'
+    print_table(queries_file,sql_path,table_map)
