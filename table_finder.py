@@ -60,7 +60,7 @@ def print_table(queries_file,sql_path,table_map):
             table=row[0]
             start=table_map[table]['start']
             stop=table_map[table]['end']
-            cmd="awk 'NR>= {} && NR< {}' {}".format(start,stop,sql_path)
+            cmd="awk 'NR>= {} && NR< {}' {} > {}.table.tsv".format(start,stop,sql_path,table)
             print(cmd)
             os.system(cmd)
 
