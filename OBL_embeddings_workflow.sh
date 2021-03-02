@@ -14,11 +14,12 @@
 ##hyperparameters
 ##results output variables
 MODEL="TransE_l2"
-DATA_PATH="/Users/stevensmith/Projects/OpenBioLink_sandbox/"
+ROOT=$1
+DATA_PATH=$ROOT #"/Users/stevensmith/Projects/OpenBioLink_sandbox/"
 TRAIN=DRUG_train_samples.csv
 TEST=DRUG_test_samples.csv 
 VAL=DRUG_val_samples.csv
-SAVE_PATH="/Users/stevensmith/Projects/OpenBioLink_sandbox/models/"
+SAVE_PATH=$ROOT"/models/"
 
 dglke_train --model_name $MODEL \
 --format 'raw_udd_hrt'  \
