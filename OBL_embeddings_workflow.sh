@@ -1,3 +1,9 @@
+# BIOG-69
+# Steve Smith
+# March 2021 
+
+# Run embeddings analysis from dgl-ke on OBL subgraphs and full graphs
+
 # generate input data & removing special set 
 
 # get/set iteration variables
