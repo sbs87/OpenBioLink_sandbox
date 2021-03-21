@@ -20,9 +20,13 @@ DATA_PATH=$ROOT #"/Users/stevensmith/Projects/OpenBioLink_sandbox/"
 MODE=$4
 TOPK=$5
 #TRAIN=SUBGRAPH_train_samples.csv 
-TRAIN=ALL_SUBGRAPH_train_samples.csv
-TEST=ALL_SUBGRAPH_test_samples.csv 
-VAL=ALL_SUBGRAPH_val_samples.csv
+#TRAIN=ALL_SUBGRAPH_train_samples.rmset.qfiltered.csv
+#TEST=ALL_SUBGRAPH_test_samples.qfiltered.csv 
+#VAL=ALL_SUBGRAPH_val_samples.qfiltered.csv
+DS_ROOT=HQ_SUBGRAPH.triangle
+TRAIN=$DS_ROOT.train_samples.csv
+TEST=$DS_ROOT.DIS_DRUG.test_samples.csv
+VAL=$DS_ROOT.DIS_DRUG.val_samples.csv
 ENTITY_MAP="entities.tsv"
 REL_MAP="relations.tsv"
 SCORE_FUNC="logsigmoid"
@@ -66,11 +70,11 @@ TEST)
 echo "TEST"
 
 
-eval perfomance - compare to dgl_train
+#eval perfomance - compare to dgl_train
 dglke_eval --model_name $MODEL \
 --format 'raw_udd_hrt'  \
 --data_path $DATA_PATH \
---data_files $TEST $VAL $TRAIN \
+--data_files $TRAIN $TEST $VAL \
 --batch_size 1000 \
 --neg_sample_size 200 \
 --hidden_dim 400 \
