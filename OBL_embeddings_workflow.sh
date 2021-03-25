@@ -23,10 +23,12 @@ TOPK=$5
 #TRAIN=ALL_SUBGRAPH_train_samples.rmset.qfiltered.csv
 #TEST=ALL_SUBGRAPH_test_samples.qfiltered.csv 
 #VAL=ALL_SUBGRAPH_val_samples.qfiltered.csv
-DS_ROOT=HQ_SUBGRAPH.triangle
+DS_ROOT=$6
+#HQ_DIR.triangle.DRUGONLY
+#DS_ROOT=SUBGRAPH.GENE_DIS
 TRAIN=$DS_ROOT.train_samples.csv
-TEST=$DS_ROOT.DIS_DRUG.test_samples.csv
-VAL=$DS_ROOT.DIS_DRUG.val_samples.csv
+TEST=$DS_ROOT.test_samples.csv
+VAL=$DS_ROOT.val_samples.csv
 ENTITY_MAP="entities.tsv"
 REL_MAP="relations.tsv"
 SCORE_FUNC="logsigmoid"
