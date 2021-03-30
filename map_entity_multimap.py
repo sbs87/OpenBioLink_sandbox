@@ -4,8 +4,8 @@ import sys
 import pandas as pd
 import re
 
-mapping_fn="/Users/stevensmith/Projects/OpenBioLink_sandbox/test_map" #sys.argv[1]
-query_fn="/Users/stevensmith/Projects/OpenBioLink_sandbox/query" #sys.argv[2]
+mapping_fn=sys.argv[1]
+query_fn=sys.argv[2]
 mapping_raw=pd.read_csv(mapping_fn,sep="\t",dtype="str")
 queries=pd.read_csv(query_fn,sep="\t")
 mapping={}
