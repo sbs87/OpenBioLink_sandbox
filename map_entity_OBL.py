@@ -14,7 +14,7 @@
 #   stdout of tab-delimited head/rel/tail/score; head and tail mapped where possible
 #////////////////////////
 # TODO 
-# Modidy for OBL data... currenly set up as a stand-alone script for dgl-ke embeddings results
+# BIOG-73 Modidy for OBL data... currenly set up as a stand-alone script for dgl-ke embeddings results
 
 import sys
 import pandas as pd
