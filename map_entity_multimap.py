@@ -1,5 +1,18 @@
 # Allow for multiple key IDs. Map each instance to a new value. 
-
+#////////////////////////
+# map_entity_multimap.py
+# Steve Smith
+# April 2021
+#
+# this script will map "common name" identifiers given a mapping file and a query file. 
+# input:
+#   mapping (tsv)
+#     Columns with header key/value - > Key is the original ID, value is the mapped value (common name)
+#   query file (tsv)
+#     Columns with header id -
+# output
+#   stdout of tab-delimited mapped file; mapped where possible
+#////////////////////////
 import sys
 import pandas as pd
 import re
@@ -19,12 +32,16 @@ for m,w in mapping_raw.iterrows():
         mapping[id_i]=[value_i]
 
 for r,query in queries.iterrows():
-    query_i=query['query']
+    query_i=str(query['query'])
+
     result=""
     try:
         result=mapping[query_i]
     except:
         result=["NOT_FOUND"]
+    
+    #for i in query:
+    #    print(i, end=" ")
     for val in result:
-        print("{}\t{}".format(query_i,val))
+        print("{}\tPUBCHEM.COMPOUND:{}".format(query_i,val))
 

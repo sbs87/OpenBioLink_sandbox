@@ -21,8 +21,8 @@ import pandas as pd
 import re
 
 # Load variables & data
-mapping_fn=sys.argv[1]
-query_fn=sys.argv[2]
+mapping_fn=sys.argv[1] #id_mappings.tsv
+query_fn=sys.argv[2] #TransE_l1_OBL_21_results.teva.rmtrain.csv
 mapping=pd.read_csv(mapping_fn,sep="\t",dtype="str")
 queries=pd.read_csv(query_fn,sep="\t")
 
