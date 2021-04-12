@@ -1,58 +1,29 @@
-# Map an OBL Id to its common name 
 #////////////////////////
 # map_uid.py
 # Steve Smith
 # April 2021
 #
-# this script will map "common name" identifiers given a mapping df and a query df. 
+# this function will map "common name" identifiers (OBL) given a mapping df and a query df. 
+# Perfoms a right join on mapping-query df (keeps unmapped query IDs)
 # input:
-#   mapping (filename)
-#     Columns with header key/value - > Key is the original ID, value is the mapped value (common name)
+#   mapping (filename, string)
+#     Columns with header UID/value pairs - > UID is the original Unique ID, value is the mapped value (common name)
 #   query (dataframe)
-#     Columns with header id -
+#     Columns with at least the UID in mapping file
+#   (optional) mapping_uid_col_name - the column header containing uniuqe ID of mapping (Default 'UID')
+#   (optional) query_uid - the column header containing uniuqe ID of query (Default 'UID')
 # output
 #   dataframe with original content + mapped ID
+#   Unmappable IDs with have a 'NaN' in the 'common_name' column
+#   <UID>//<common_name>//<other_columns>
+# assumes mapping_file has unique IDs in UID column
 #////////////////////////
-import sys
 import pandas as pd
-import re
 
-mapping_fn=sys.argv[1]
-query_df=pd.DataFrame() #sys.argv[2]
-mapping_raw=pd.read_csv(mapping_fn,sep="\t",dtype="str")
-queries=pd.read_csv(query_fn,sep="\t")
-mapping={}
-
-# Set the column containing Unique IDs as the index and make into dict {UID:Name}. 
-mapping_raw.set_index('UID',inplace=True)
-mapping=mapping_raw.to_dict()['From']
-
-for m,w in mapping_raw.iterrows():
-    id_i=w['ID']
-    value_i=w['value']
-    if id_i in mapping.keys():
-        mapping[id_i].append(value_i)
-    else:
-        mapping[id_i]=[value_i]
-
-for r,query in queries.iterrows():
-    query_i=str(query['query'])
-
-    result=""
-    try:
-        result=mapping[query_i]
-    except:
-        result=["NOT_FOUND"]
-    
-    #for i in query:
-    #    print(i, end=" ")
-    for val in result:
-        print("{}\tPUBCHEM.COMPOUND:{}".format(query_i,val))
-
-
-#mapped_df=map_id(mapping,query_df)
-#mapped_df:
-#<original_ids>//<mapped_id>
-
-#mapepd_df=map_ids(mapping_file,query_df)
+def map_uid(mapping_fn,query_df,mapping_uid_col_name='UID',query_uid='UID'):
+    # Read mapping file
+    mapping=pd.read_csv(mapping_fn,sep="\t",dtype="str")
+    # Perfom right join to map IDs
+    mapped_df=pd.merge(mapping,query_df,left_on=mapping_uid_col_name,right_on=query_uid,how='right')
+    return(mapped_df)
 
