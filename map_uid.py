@@ -23,6 +23,10 @@ mapping_raw=pd.read_csv(mapping_fn,sep="\t",dtype="str")
 queries=pd.read_csv(query_fn,sep="\t")
 mapping={}
 
+# Set the column containing Unique IDs as the index and make into dict {UID:Name}. 
+mapping_raw.set_index('UID',inplace=True)
+mapping=mapping_raw.to_dict()['From']
+
 for m,w in mapping_raw.iterrows():
     id_i=w['ID']
     value_i=w['value']
@@ -50,4 +54,5 @@ for r,query in queries.iterrows():
 #mapped_df:
 #<original_ids>//<mapped_id>
 
+#mapepd_df=map_ids(mapping_file,query_df)
 
