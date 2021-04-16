@@ -1,8 +1,26 @@
+#////////////////
+# DisGeNetAssociationType.py
+# April 2021
+# This module written by Simon Ott from OBL as a feature request from Felipe Mello under OBL's issue #62 (https://github.com/OpenBioLink/OpenBioLink/issues/62)
+# Script orignally at: https://gist.github.com/nomisto/4f2a21a93779be673a22d121157b14c3
+# It was adapted by Steve Smith from Teva to suit our purposes
+# -----------------------
+# This script will take a given train, test or val set from OBL and 'expand' the edge types that come from DisGeNet (the Gene:Dis edge types)
+# So instead of GENE_DIS as the only edge type in DisGeNet, the edge types will be more granular, i.e., GENE_ALTEREDEXPRESSION_DIS and GENE_BIOMARKER_DIS
+# -----------------------
+# Usage: see the series of function calls at the bottom, which will:
+# 1. Downloads DisGeNet UMLS:DOID mapping file (DisGeNet Ids diseases using UMLS, OBL uses DOID)
+# 2. Downloads 2020 version of DisGeNet sql database (contining granular edge types)
+# 3. Reads in SQL db DOID:GENE edges to dict
+# 4. Enriches the train/test/val sets with updated edge types
+# Note that the quality score cutoff is only for new SQL database; if the train/test/val sets have scores >0.8 then the cutoffs won't do much. See note above enrich_set
+#////////////////
 
 import urllib
 import gzip
 import io
-from tqdm.notebook import tqdm
+#from tqdm.notebook import tqdm - do not have this version of the lib
+import tqdm
 import requests
 import shutil
 import os
@@ -12,19 +30,21 @@ import sqlite3
 """
 CONFIG
 """
+data_path_root='/Users/stevensmith/Projects/OpenBioLink_sandbox/testing/db/' #"/Users/stevensmith/Projects/OpenBioLink/HQ_DIR/train_test_data/"
+source_db_files='/Users/stevensmith/Projects/OpenBioLink_sandbox/testing/final/' 
 
-path_train = r"C:\Users\sott\Documents\HQ_DIR\HQ_DIR\train_test_data\train_sample.csv"
-path_test = r"C:\Users\sott\Documents\HQ_DIR\HQ_DIR\train_test_data\test_sample.csv"
-path_valid = r"C:\Users\sott\Documents\HQ_DIR\HQ_DIR\train_test_data\val_sample.csv"
+path_train = data_path_root+"train_sample.csv"
+path_test = data_path_root+"test_sample.csv"
+path_valid = data_path_root+"val_sample.csv"
 
-path_train_out = r"C:\Users\sott\Documents\HQ_DIR\HQ_DIR\train_test_data\new_train_sample.csv"
-path_test_out = r"C:\Users\sott\Documents\HQ_DIR\HQ_DIR\train_test_data\new_test_sample.csv"
-path_valid_out = r"C:\Users\sott\Documents\HQ_DIR\HQ_DIR\train_test_data\new_val_sample.csv"
+path_train_out = data_path_root+"new_train_sample.csv"
+path_test_out = data_path_root+"new_test_sample.csv"
+path_valid_out = data_path_root+"new_val_sample.csv"
 
-db_file = r"https://www.disgenet.org/static/disgenet_ap1/files/sqlite_downloads/current/disgenet_2020.db.gz"
-db_name = "disgenet_2020.db"
-mapping_file = r"http://www.disgenet.org/static/disgenet_ap1/files/downloads/disease_mappings.tsv.gz"
-mapping_name = "disease_mappings.tsv"
+db_url = "https://www.disgenet.org/static/disgenet_ap1/files/sqlite_downloads/current/disgenet_2020.db.gz"
+db_name = source_db_files+"disgenet_2020.db"
+mapping_url = "http://www.disgenet.org/static/disgenet_ap1/files/downloads/disease_mappings.tsv.gz"
+mapping_name = source_db_files+"disease_mappings.tsv"
 
 LQ_CUTOFF = 0
 MQ_CUTOFF = 0.4
@@ -32,32 +52,22 @@ HQ_CUTOFF = 0.7
 
 cutoff = LQ_CUTOFF
 
-class TqdmUpTo(tqdm):
-    """Provides `update_to(n)` which uses `tqdm.update(delta_n)`."""
-    def update_to(self, b=1, bsize=1, tsize=None):
-        """
-        b  : int, optional
-            Number of blocks transferred so far [default: 1].
-        bsize  : int, optional
-            Size of each block (in tqdm units) [default: 1].
-        tsize  : int, optional
-            Total size (in tqdm units). If [default: None] remains unchanged.
-        """
-        if tsize is not None:
-            self.total = tsize
-        return self.update(b * bsize - self.n)  # also sets self.n = b * bsize
-
 def download_and_extract(url, file_name):
-    if os.path.isfile('./' + file_name):
+    #file_path=os.path.dirname(file_name) ## will need to convert all instances so leave this for now. 
+    if os.path.isfile(file_name):
         print(f"{file_name} already exists, skipping download..")
         return
-    gzip_name = url.split("/")[-1]
-    with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1,
-              desc=url.split('/')[-1]) as t:  # all optional kwargs
-        urllib.request.urlretrieve(url=url, filename=gzip_name, reporthook=t.update_to, data=None)
-        t.total = t.n
-    file_name = gzip_name.replace(".gz","")
+    gzip_name = file_name + ".gz"
 
+    # SS: OBL had a status bar, but I don't have tqdm.notebook/library needed to perform this. Replaced with a simple urlretrieve
+    urllib.request.urlretrieve(url,gzip_name)
+    #with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1,
+    #          desc=url.split('/')[-1]) as t:  # all optional kwargs
+    #    urllib.request.urlretrieve(url=url, filename=gzip_name, reporthook=t.update_to, data=None)
+    #    t.total = t.n
+    
+    #file_name = gzip_name.replace(".gz","")
+    
     with gzip.open(gzip_name, 'rb') as f_in:
         with open(file_name, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
@@ -105,6 +115,7 @@ def enrich_set(path_in, path_out, association_types, cutoff: float):
     content = [x.strip() for x in content]
     with open(path_out, "w") as out:
         for line in content:
+            #TODO: SS: Note that 'qual' is never used. Unsure why. 
             head, rel, tail, qual, negative, src = line.split("\t")
             if rel == "GENE_DIS":
                 if len(association_types[(head,tail)]) > 0:
@@ -121,11 +132,11 @@ def enrich_set(path_in, path_out, association_types, cutoff: float):
             else:
                 out.write(line + "\n")
 
-download_and_extract(mapping_file, mapping_name)
+download_and_extract(mapping_url, mapping_name)
 mapping = read_mapping(mapping_name)
 
-download_and_extract(db_file, db_name)
-association_types = read_db(db_name, mapping)
+download_and_extract(db_url, db_name)
+association_types = (db_name, mapping)
 
 enrich_set(path_test, path_test_out, association_types, cutoff)
 enrich_set(path_train, path_train_out, association_types, cutoff)
