@@ -93,17 +93,43 @@ python3 ../map_entity_multimap.py map.tmp non_organic_drug_ids.tsv | grep -v NOT
 ### Filter the original drug dataset (all DrugCentral approved drugs, above) for only non-organic type drugs
 grep -wf ../preprocessing/hq_drug ../preprocessing/non_organic_drug > ../preprocessing/hq_non_organic_drug
 
+### In tevas portfolio AND in model
+awk '$4=="TEVA"'  data/public.ob_product_table.tsv | cut -f2  | sort -u > teva_products
+grep -f teva_products  data/public.active_ingredient.table.tsv | cut -f7,9  | sort -u > teva_products.structure
+##///map_uid_unit_test.py:
+## mapping_fn="mapping_files/pubchem_to_struct"
+## query_df=pd.read_csv("teva_products.structure",sep="\t",dtype="str")
+## mapped_df=map_uid.map_uid(mapping_fn,query_df)
+## mapped_df.to_csv("teva_products.pubchem.tsv",sep="\t")
+cut -f3 teva_products.pubchem.tsv | sort -u  > teva_products.pubchem.in.tsv
+cut -f2 entities.tsv | grep PUBCHEM  | grep -wf  preprocessing/teva_products.pubchem.in.tsv > preprocessing/teva_products.pubchem.inmodel.tsv 
+
 ## Disease: 
 ### Same as above
 
 ## Create all desired novel triplet combinations for prediction 
 python3 create_prediction.py preprocessing/hq_non_organic_drug DRUG_GENE preprocessing/teva_genes > predict_in.teva  ## Drug - Gene
 python3 create_prediction.py preprocessing/hq_dis DIS_DRUG preprocessing/hq_non_organic_drug >> predict_in.teva ## Drug - Dis
-python3 create_prediction.py preprocessing/RD_teva_genes GENE_DIS preprocessing/hq_dis >> predict_in.teva ## Gene - Dis ? 
+python3 create_prediction.py preprocessing/RD_teva_genes GENE_DIS preprocessing/hq_dis > predict_in.teva ## Gene - Dis ? 
 
 python3 create_prediction.py preprocessing/hq_non_organic_drug DRUG_GENE preprocessing/teva_genes > predict_in.teva  ## Drug - Gene
 python3 create_prediction.py preprocessing/hq_dis DIS_DRUG preprocessing/hq_non_organic_drug > predict_in.teva ## Drug - Dis
 python3 create_prediction.py preprocessing/teva_genes GENE_DIS preprocessing/hq_dis > predict_in.teva ## Gene - Dis ? 
+
+### Repurposing Teva drugs
+python3 create_prediction.py preprocessing/teva_products.pubchem.inmodel.tsv  DRUG_GENE preprocessing/RD_gene > predict_in.teva
+python3 create_prediction.py preprocessing/hq_dis DIS_DRUG preprocessing/teva_products.pubchem.inmodel.tsv >> predict_in.teva ## Drug - Dis
+
+### TL1A
+echo "DOID:12236" > preprocessing/teva_PBC
+grep -i TNF id_mappings.tsv | grep NCB | cut -f1    > tmp.tl1a 
+grep -f tmp.tl1a entities.tsv | cut -f2 > preprocessing/teva_TL1A_genes
+rm -f tmp.tl1a 
+
+python3 create_prediction.py preprocessing/hq_drug DRUG_GENE preprocessing/teva_TL1A_genes > predict_in.teva_TL1A  ## Drug - Gene
+python3 create_prediction.py preprocessing/teva_PBC DIS_DRUG preprocessing/hq_drug > predict_in.teva_TL1A ## Drug - Dis
+python3 create_prediction.py preprocessing/teva_TL1A_genes GENE_DIS preprocessing/teva_PBC > predict_in.teva_TL1A ## Gene - Dis ? 
+
 
 # ///////////
 # Split input triples into node1, egde and node2 files; some need to be batched in
@@ -125,12 +151,17 @@ cut -f1 predict_in.teva  > node1
 cut -f3 predict_in.teva > node2
 cut -f2 predict_in.teva > edge
 
+
+cut -f1 predict_in.teva_TL1A  > node1
+cut -f3 predict_in.teva_TL1A > node2
+cut -f2 predict_in.teva_TL1A > edge
+
 # ----------------------------------
 # Make predictions
 # ----------------------------------
 
 ./OBL_embeddings_workflow.sh ~/Projects/OpenBioLink_sandbox/ $MODEL TransE_l1 PREDICT 50000 $SET_PREFIX.DRUGONLY.collapsed
-mv TransE_l1_OBL_21_results.csv TransE_l1_OBL_21_results.teva.csv 
+mv TransE_l1_OBL_21_results.csv TransE_l1_OBL_21_results.teva_TL1A.csv 
 # For rare disase:
 ## only did untill 44354672 for Druug-Gene... moved on o Drugf-Dis. Doing top 5000 per iteration, combining. 
 ## only did untill 40000000 for Dis Drug 
@@ -150,12 +181,15 @@ cat  *part* | sort -k4 -rn  | head -n 5000 > TransE_l1_OBL_21_results.compiled_r
 # Remove triplets that are in training data from predictions
 # ///////////
 cut -f1-3 $SET_PREFIX.DRUGONLY."train_samples.csv" > in_train
-grep -vf in_train TransE_l1_OBL_21_results.teva.csv > TransE_l1_OBL_21_results.teva.rmtrain.csv
+cut -f1-3 data/$SET_PREFIX.DRUGONLY.{train,test,val}"_samples.csv" > in_train
+cut -f1-3 train_test_input/$SET_PREFIX.DRUGONLY.train_samples.csv > in_train
+cut -f1-3 train_test_input/$SET_PREFIX.DRUGONLY.{val,test}"_samples.csv" > in_test_val
+grep -vf in_train TransE_l1_OBL_21_results.teva_TL1A.csv > TransE_l1_OBL_21_results.teva_TL1A.rmtrain.csv
 
 # ///////////
 # Map entity IDs to common name
 # ///////////
-python3 map_entity_OBL.py id_mappings.tsv TransE_l1_OBL_21_results.teva.csv
+python3 map_entity_OBL.py id_mappings.tsv TransE_l1_OBL_21_results.teva_TL1A.rmtrain.csv > TransE_l1_OBL_21_results.teva_TL1A.rmtrain.mapped.csv
 
 ## Remember to mv the model so it can be saved from overwrite
 mv TransE_l1_OBL_21_results.teva.rmtrain.csv TransE_l1_OBL_21_results.teva_gene_drug.rmtrain.csv
