@@ -19,8 +19,8 @@ predictions.keys.remtrain<-filter(predictions.keys,!key %in% in_train.keys$key)
 in_train.keys$set<-"in_train"
 in_test.keys$set<-"in_test"
 
-merge(predictions.keys.remtrain,in_test.keys,all.x = T)
-
+merge(predictions.keys.remtrain,in_test.keys,all.x = T) %>% filter(!is.na(set))
+tail(predictions.keys.remtrain)
 
 intersect(predictions.keys.remtrain$key,in_test.keys$key)
 
