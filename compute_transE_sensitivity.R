@@ -18,11 +18,11 @@ predictions.keys.remtrain<-filter(predictions.keys,!key %in% in_train.keys$key)
 
 in_train.keys$set<-"in_train"
 in_test.keys$set<-"in_test"
-
+predictions.keys.remtrain$rank<-1:nrow(predictions.keys.remtrain)
 merge(predictions.keys.remtrain,in_test.keys,all.x = T) %>% filter(!is.na(set))
 tail(predictions.keys.remtrain)
 
 intersect(predictions.keys.remtrain$key,in_test.keys$key)
 
-
+nrow(predictions.keys.remtrain)
 head(predictions.keys.remtrain,30)
